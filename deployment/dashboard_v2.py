@@ -6,6 +6,39 @@ import time
 import os
 
 # =====================================================
+# AUTO CALIBRATION
+# =====================================================
+print("Calibrating sensors...")
+print(">>> KEEP THE TRAY EMPTY <<<")
+time.sleep(2)
+
+samples = []
+
+for _ in range(10):
+    sensors = get_all_sensors()
+
+    samples.append([
+        sensors["sensor1"]["magnitude"],
+        sensors["sensor2"]["magnitude"],
+        sensors["sensor3"]["magnitude"]
+    ])
+
+    time.sleep(0.2)
+
+EMPTY_MAG1 = sum(s[0] for s in samples) / len(samples)
+EMPTY_MAG2 = sum(s[1] for s in samples) / len(samples)
+EMPTY_MAG3 = sum(s[2] for s in samples) / len(samples)
+
+TOL = 180
+
+print("\nCalibration Complete")
+print(f"Sensor1 Empty = {EMPTY_MAG1:.2f}")
+print(f"Sensor2 Empty = {EMPTY_MAG2:.2f}")
+print(f"Sensor3 Empty = {EMPTY_MAG3:.2f}")
+
+time.sleep(2)
+
+# =====================================================
 # Risk Levels
 # =====================================================
 def get_risk(prediction):
@@ -44,12 +77,16 @@ def get_risk(prediction):
 # Confidence Status
 # =====================================================
 def confidence_status(conf):
+
     if conf >= 95:
         return "VERY HIGH"
+
     elif conf >= 85:
         return "HIGH"
+
     elif conf >= 70:
         return "MEDIUM"
+
     else:
         return "LOW"
 
@@ -58,6 +95,7 @@ def confidence_status(conf):
 # Sensor Bar
 # =====================================================
 def sensor_bar(value, max_value):
+
     length = 25
 
     if max_value == 0:
@@ -83,29 +121,29 @@ while True:
         rssi
     )
 
-    # -----------------------------------------
+    # =================================================
     # AI Prediction
-    # -----------------------------------------
+    # =================================================
     prediction, confidence = predict_object(features)
 
-    # -----------------------------------------
+    # =================================================
     # Empty Tray Detection
-    # -----------------------------------------
+    # =================================================
     m1 = features["mag_1"]
     m2 = features["mag_2"]
     m3 = features["mag_3"]
 
     if (
-        1750 <= m1 <= 1900 and
-        2420 <= m2 <= 2550 and
-        2600 <= m3 <= 2750
+        abs(m1 - EMPTY_MAG1) <= TOL and
+        abs(m2 - EMPTY_MAG2) <= TOL and
+        abs(m3 - EMPTY_MAG3) <= TOL
     ):
         prediction = "empty"
         confidence = 100.0
 
-    # -----------------------------------------
+    # =================================================
     # Risk
-    # -----------------------------------------
+    # =================================================
     risk = get_risk(prediction)
 
     mags = [

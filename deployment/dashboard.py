@@ -17,15 +17,51 @@ print("=" * 60)
 print("      AIRPORT AI THREAT DETECTION DASHBOARD")
 print("=" * 60)
 
+# =====================================
+# AUTO CALIBRATION
+# Keep the tray EMPTY while the program starts
+# =====================================
+print("\nCalibrating... Please keep the tray EMPTY.")
+time.sleep(2)
+
+samples = []
+
+for _ in range(10):
+    sensors = get_all_sensors()
+
+    samples.append([
+        sensors["sensor1"]["magnitude"],
+        sensors["sensor2"]["magnitude"],
+        sensors["sensor3"]["magnitude"]
+    ])
+
+    time.sleep(0.2)
+
+EMPTY_MAG1 = sum(s[0] for s in samples) / len(samples)
+EMPTY_MAG2 = sum(s[1] for s in samples) / len(samples)
+EMPTY_MAG3 = sum(s[2] for s in samples) / len(samples)
+
+TOL = 180
+
+print("\nCalibration Complete!")
+print(f"Empty Signature:")
+print(f"Sensor1 = {EMPTY_MAG1:.2f}")
+print(f"Sensor2 = {EMPTY_MAG2:.2f}")
+print(f"Sensor3 = {EMPTY_MAG3:.2f}")
+
 while True:
     try:
         sensors = get_all_sensors()
         rssi = get_rssi()
 
-        # Extract Features
+        # =====================================
+        # Feature Extraction
+        # =====================================
         features = extract_features(sensors, rssi)
 
+        # =====================================
         # AI Prediction
+        # =====================================
         prediction, confidence = predict_threat(features)
 
         # =====================================
@@ -35,16 +71,17 @@ while True:
         m2 = features["mag_2"]
         m3 = features["mag_3"]
 
-        # Adjusted using your live empty readings
         if (
-            1750 <= m1 <= 1900 and
-            2420 <= m2 <= 2550 and
-            2600 <= m3 <= 2750
+            abs(m1 - EMPTY_MAG1) <= TOL and
+            abs(m2 - EMPTY_MAG2) <= TOL and
+            abs(m3 - EMPTY_MAG3) <= TOL
         ):
             prediction = "empty"
             confidence = 100.0
 
-        # Debug
+        # =====================================
+        # Debug Output
+        # =====================================
         print("\n==============================")
         print("AI RETURNED")
         print("==============================")
@@ -70,13 +107,15 @@ while True:
         print("\nExtracted Features")
         print("-" * 50)
 
-        for k, v in features.items():
-            print(f"{k:20}: {v}")
+        for key, value in features.items():
+            print(f"{key:20}: {value}")
 
         print("\nPrediction :", prediction)
         print("Confidence :", round(confidence, 2), "%")
 
+        # =====================================
         # OLED Display
+        # =====================================
         image = Image.new("1", (128, 32))
         draw = ImageDraw.Draw(image)
 
